@@ -1,6 +1,6 @@
 package LogAnalysis;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class Print {
 	
@@ -8,12 +8,14 @@ public class Print {
 		System.out.println("상대코드 별 횟수");
 		System.out.println("10: "+stateNoURL);
 		System.out.println("200: "+stateSuccess);
-		System.out.println("404 "+stateNoPage + "\n");
+		System.out.println("404 "+stateNoPage);
+		System.out.println();
 	}
 	
 	void printFrequentAPIKEY(String frequentAPIKEY){
 		System.out.println("최다호출 APIKEY");
-		System.out.println(frequentAPIKEY+"\n");
+		System.out.println(frequentAPIKEY);
+		System.out.println();
 	}
 	
 	void printFrequentAPIservices(String firstService, String secondService, String thirdService, 
@@ -24,5 +26,20 @@ public class Print {
 		System.out.println(firstService + " : " + firstServiceNumber);
 		System.out.println(secondService + " : " + secondServiceNumber);
 		System.out.println(thirdService + " : " + thirdServiceNumber);
+		System.out.println();
+	}
+	
+	void printPeakTimeZone(String peakTimeZone){
+		System.out.println("피크 시간대");
+		System.out.println(peakTimeZone);
+		System.out.println();
+	}
+	
+	void printWebUsageRate(List webUsageList, float[] usageRate, int listSize){
+		System.out.println("웹 브라우저 별 사용비율");
+		for(int i=0; i<listSize; i++){
+			System.out.println(webUsageList.get(i)+": " + usageRate[i] + "%");
+		}
+			
 	}
 }

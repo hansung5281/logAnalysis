@@ -12,6 +12,7 @@ public class Input {
 		BufferedReader inputStream = new BufferedReader(new FileReader("input.log"));
         
 		Analysis analysis = new Analysis(inputStream);
+		//Analysis analysis = new Analysis();
 		analysis.dataAnalysis();;
 		
 	}

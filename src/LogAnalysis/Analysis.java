@@ -19,6 +19,18 @@ public class Analysis {
 	List<String> apiServiceList = new ArrayList<String>();
 	List<Integer> apiServiceCountList = new ArrayList<Integer>();
 	
+	List<String> webUsageList = new ArrayList<String>();
+	List<Integer> webUsageCountList = new ArrayList<Integer>();
+
+	
+	String currentPeakTime="";
+	int currentPeakTimeCount=0;
+	
+	String currentComparePeakTime="";
+	int currentComparePeakTimeCount=0;
+	
+	
+	
 	Print print = new Print();
 	
 	public Analysis(BufferedReader inputStream){
@@ -35,49 +47,97 @@ public class Analysis {
 			String dataLine = inputStream.readLine();
             if (dataLine==null) {
             	break;}
+            
             stateCodeAnalysis(dataLine);
+            frequentAPIKEYanalysis(dataLine);
+            apiServiceAnalysis(dataLine);
+            peakTimeZoneAnalysis(dataLine);
+            webUsageAnalysis(dataLine);
             
 		}
 		inputStream.close();
 	}
 	
 	void stateCodeAnalysis(String dataLine) throws IOException{
-            int stateCodeIndex = dataLine.indexOf(']');
-            String stateCode = dataLine.substring(1,stateCodeIndex);
-            countStateCode(stateCode, dataLine);
+		String stateCode = selectData(dataLine, 0);
+		countStateCode(stateCode, dataLine);
 	}
 	
-	void frequentAPIKEYanalysis(String dataLine){
+	void frequentAPIKEYanalysis(String dataLine){	
 		final int apikeyLength = 4;
-		int startAPIKEYindex = dataLine.indexOf("apikey="),
-			endAPIKEYindex = startAPIKEYindex+7;
-		String apikey = dataLine.substring(endAPIKEYindex,endAPIKEYindex+apikeyLength);
-	
-		countAPIKEY(apikey);
+		String stateCode = selectData(dataLine, 0);
+		
+		//상태코드가 10이 아닐떄만
+		if(!(stateCode.equals("10"))){
+			String url = selectData(dataLine, 1);
+			
+			int startAPIKEYindex = url.indexOf("=") + 1,
+				endAPIKEYindex = startAPIKEYindex + apikeyLength;
+			
+			String apikey = url.substring(startAPIKEYindex,endAPIKEYindex);
+			countAPIKEY(apikey);
+		}
 	}
 	
-	void stateAPIservice(String dataLine){
-		final int UrlLength = 28;
-		int startAPIserviceIndex = dataLine.indexOf("http") + UrlLength,
-			endAPIserviceIndex = dataLine.indexOf("?");
-		String apiService = dataLine.substring((startAPIserviceIndex),(endAPIserviceIndex));
+	void apiServiceAnalysis(String dataLine){
+		final int basicUrlLength = 28;
+		String stateCode = selectData(dataLine, 0);
 		
-		countAPIservice(apiService);
+		if(!(stateCode.equals("404"))){
+			String url = selectData(dataLine, 1);
+			
+			int startApiServiceIndex = basicUrlLength,
+				endApiserviceIndex = url.indexOf("?");
+
+			String apiService = url.substring(startApiServiceIndex,endApiserviceIndex);
+			countAPIservice(apiService);
+		}
+		
+	}
+	
+	void peakTimeZoneAnalysis(String dataLine){
+		String accessTime = selectData(dataLine, 3);
+		
+		if(currentPeakTimeCount==0){
+			currentPeakTime = accessTime;
+			currentComparePeakTime = accessTime;
+			currentPeakTimeCount++;
+			currentComparePeakTimeCount++;
+			return ;
+			
+		}
+		
+		if(currentComparePeakTime.equals(accessTime)){
+			if(currentPeakTimeCount < currentComparePeakTimeCount){
+				currentPeakTimeCount = currentComparePeakTimeCount;
+			} 
+			currentComparePeakTimeCount++;
+		}
+		else{
+			if(currentPeakTimeCount < currentComparePeakTimeCount){
+				currentPeakTimeCount = currentComparePeakTimeCount;
+				currentPeakTime = currentComparePeakTime;
+			}
+			currentComparePeakTime = accessTime;
+			currentComparePeakTimeCount=1;
+		}
+			
+	}
+	
+	void webUsageAnalysis(String dataLine){
+		String webType = selectData(dataLine, 2);
+		countWebUsage(webType);
 	}
 	
 	void countStateCode(String stateCode, String dataLine){
 		if(stateCode.equals("10")){
 			stateNoURL++;
-			stateAPIservice(dataLine);
 		}
 		else if(stateCode.equals("200")){
 			stateSuccess++;
-			frequentAPIKEYanalysis(dataLine);
-			stateAPIservice(dataLine);
 		}
 		else{ //404
 			stateNoPage++;
-			frequentAPIKEYanalysis(dataLine);
 		}
 	}
 	
@@ -128,7 +188,7 @@ public class Analysis {
 		}
 	}
 	
-	void choiceFrequentAPIKEY(){
+	void chooseFrequentAPIKEY(){
 		int frequentCount= apikeyCountList.get(0);
 		
 		for (Integer count : apikeyCountList) {
@@ -142,7 +202,7 @@ public class Analysis {
 		print.printFrequentAPIKEY(apikeyList.get(frequentIndex));
 	}
 	
-	void choiceFrequentAPIservices(){
+	void chooseFrequentAPIservices(){
 		int arrayIndex = 0;
 		int apiServiceCountArray[] = new int[6]; 
 		for (int apiServiceCount : apiServiceCountList) {
@@ -178,11 +238,76 @@ public class Analysis {
 		
 	}
 	
+	void choosePeakTimeZone(){
+		print.printPeakTimeZone(currentPeakTime);
+	}
+	
+	
+	void countWebUsage(String webType){
+		boolean equalWebType = false;
+		
+		if(webUsageList.isEmpty()){
+			webUsageList.add(webType);
+			webUsageCountList.add(1);
+		}
+		else{
+			for (String WebType : webUsageList) {
+				if(WebType.equals(webType)){
+					equalWebType = true;
+					int webUsageTypeCountIndex = webUsageList.indexOf(WebType);
+					
+					webUsageCountList.set(webUsageTypeCountIndex, (webUsageCountList.get(webUsageTypeCountIndex)+1));
+				}
+			}
+			if(equalWebType==false){
+				webUsageList.add(webType);
+				webUsageCountList.add(1);
+			}
 
+		}
+	}
+	
+	void webUsageRateAnalysis(){
+		int totalWebUsage = 0,
+			listSize = webUsageCountList.size();
+		
+		float[] usageRate = new float[listSize];
+		
+		for (Integer webUsage : webUsageCountList) {
+			totalWebUsage = totalWebUsage + webUsage;  
+		}
+		for(int i=0; i<listSize; i++){
+			usageRate[i] = ( (float)(webUsageCountList.get(i) * 100) / (float)totalWebUsage) ;
+		}
+		
+		print.printWebUsageRate(webUsageList, usageRate, listSize);
+		
+	}
+	
+	String selectData(String dataLine, int areaNumber){
+		
+		int startIndex=0, 
+			endIndex = dataLine.length();
+		
+		String resultData;
+		
+			for(int i=0; i<areaNumber; i++){
+				startIndex = ( (dataLine.substring(startIndex,endIndex)).indexOf("]") + 1 ) + startIndex;
+			}
+			endIndex = startIndex + (dataLine.substring(startIndex,endIndex)).indexOf("]");
+			
+			startIndex = startIndex+1; 
+			resultData = dataLine.substring(startIndex,endIndex);
+			
+			return resultData;
+	}
+	
+	
 	void printResult(){
-		choiceFrequentAPIKEY();
+		chooseFrequentAPIKEY();
 		print.printStateCode(stateNoURL, stateSuccess, stateNoPage);
-		choiceFrequentAPIservices();
-
+		chooseFrequentAPIservices();
+		choosePeakTimeZone();
+		webUsageRateAnalysis();
 	}
 }
